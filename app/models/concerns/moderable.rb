@@ -2,7 +2,7 @@ module Moderable
   extend ActiveSupport::Concern
 
   included do
-    after_save :moderate
+    after_save :moderate, if: :should_run_after_save_callback?
   end
 
   class_methods do
@@ -19,6 +19,7 @@ module Moderable
 
   def moderate
     self.class.moderated_columns.each do |column_name|
+      puts "Running"
       value = self.send(column_name)
       next if value.blank?
 
@@ -26,5 +27,9 @@ module Moderable
       accepted = prediction < 0.5
       self.update_column(:is_accepted, accepted) unless accepted
     end
+  end
+
+  def should_run_after_save_callback?
+    Post.moderated_columns.any? { |column| saved_change_to_attribute?(column.to_s) }
   end
 end
